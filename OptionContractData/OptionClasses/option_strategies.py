@@ -11,6 +11,7 @@ class SingleContractStrategy:
                  fill_gaps=True, closed_market_period=(9, 30, 16, 0), pricing_criteria='h',
                  multiplier=1, polygon_api_key='r1Jqp6JzYYhbt9ak10x9zOpoj1bf58Zz'):
         start_time = perf_counter()
+
         self.ticker = ticker.upper()
         self.strike = float(strike)
         self.expiration_date = expiration_date
@@ -47,6 +48,9 @@ class SingleContractStrategy:
 
         end_time = perf_counter()
         self.execution_time = round(end_time - start_time, ndigits=4)
+
+    def input_checker(self):
+        pass  # Eventually pass self variables through here before calling API functions (below)
 
     def fill_data_gaps(self):
 
@@ -126,6 +130,7 @@ class SingleContractStrategy:
                                    'entry_runs': entry_runs,
                                    'exit_time': exit_time,
                                    'exit_contract_price': exit_contract_price,
+                                   'exit_strategy_price': exit_strategy_price,
                                    'exit_volume': exit_volume,
                                    'exit_volume_weighted': exit_volume_weighted,
                                    'exit_runs': exit_runs,
@@ -173,6 +178,8 @@ class TwoOptionStrategy:
                  entry_date, exit_date, entry_exit_period=None, timespan='minute',
                  per_contract_commission=0.01, fill_gaps=True, closed_market_period=(9, 30, 16, 0), pricing_criteria='h',
                  multiplier=1, polygon_api_key='r1Jqp6JzYYhbt9ak10x9zOpoj1bf58Zz'):
+        start_time = perf_counter()
+
         self.ticker1, self.strike1, self.expiration_date1, self.quantity1, self.is_call1 = contract_1
         self.ticker2, self.strike2, self.expiration_date2, self.quantity2, self.is_call2 = contract_2
         self.entry_date, self.exit_date = entry_date, exit_date
@@ -190,6 +197,9 @@ class TwoOptionStrategy:
                                            multiplier=self.multiplier)
         self.contract_data1 = contract1.contract_data
         self.contract_simulation_1 = contract1.simulation_data
+        self.contract_meta_data_1 = contract1.meta_data
+        self.contract_auto_fills_1 = self.contract_meta_data_1['auto_filled_trades']
+        self.contract_execution_time_1 = contract1.execution_time
 
         contract2 = SingleContractStrategy(ticker=self.ticker2, strike=self.strike2,
                                            expiration_date=self.expiration_date2, quantity=self.quantity2,
@@ -200,15 +210,79 @@ class TwoOptionStrategy:
                                            multiplier=self.multiplier)
         self.contract_data2 = contract2.contract_data
         self.contract_simulation_2 = contract2.simulation_data
+        self.contract_execution_time_2 = contract2.execution_time
+        self.contract_meta_data_2 = contract2.meta_data
+        self.contract_auto_fills_2 = self.contract_meta_data_2['auto_filled_trades']
+
+        self.combined_simulation_data = self.run_dual_simulation()
+
+        self.meta_data = self.perform_meta_analysis()
+
+        end_time = perf_counter()
+        self.execution_time = round(end_time - start_time, ndigits=4)
 
     def run_dual_simulation(self):
-        pass
+        simulation_data = []
+
+        for point1, point2 in zip(self.contract_simulation_1, self.contract_simulation_2):
+            entry_contract_value = point1['entry_contract_price'] + point2['entry_contract_price']
+            entry_strategy_value = point1['entry_strategy_price'] + point2['entry_strategy_price']
+            exit_contract_value = point1['exit_contract_price'] + point2['exit_contract_price']
+            exit_strategy_value = point1['exit_strategy_price'] + point2['exit_strategy_price']
+            contract_dollar_change = round(exit_contract_value - entry_contract_value, ndigits=2)
+            contract_percent_change = round(contract_dollar_change / entry_contract_value, ndigits=2)
+            strategy_dollar_change = round(exit_strategy_value - entry_strategy_value, ndigits=2)
+            strategy_profit_percent = round(strategy_dollar_change / exit_strategy_value, ndigits=2)
+
+            combined_trade = {'entry_time': point1['entry_time'],
+                              'exit_time': point1['exit_time'],
+                              'entry_contract_value': entry_contract_value,
+                              'entry_strategy_value': entry_strategy_value,
+                              'exit_contract_value': exit_contract_value,
+                              'exit_strategy_value': exit_strategy_value,
+                              'contract_dollar_change': contract_dollar_change,
+                              'contract_percent_change': contract_percent_change,
+                              'strategy_dollar_change': strategy_dollar_change,
+                              'strategy_profit_percent': strategy_profit_percent,
+                              'entry_volume': point1['entry_volume'] + point2['entry_volume'],
+                              'entry_runs': point1['entry_runs'] + point2['entry_runs'],
+                              'exit_volume': point1['exit_volume'] + point2['exit_volume'],
+                              'exit_runs': point1['exit_runs'] + point2['exit_runs'],
+                              }
+
+            simulation_data.append(combined_trade)
+
+        return simulation_data
+
+    def perform_meta_analysis(self):
+        average_contract_change_percent = mean([i['contract_percent_change'] for i in self.combined_simulation_data])
+        std_dev_contract_change = stdev([i['contract_percent_change'] for i in self.combined_simulation_data])
+        average_return_percent = mean(i['strategy_profit_percent'] for i in self.combined_simulation_data)
+        average_entry_volume = mean(i['entry_volume'] for i in self.combined_simulation_data)
+        average_exit_volume = mean(i['exit_volume'] for i in self.combined_simulation_data)
+        average_entry_runs = mean(i['entry_runs'] for i in self.combined_simulation_data)
+        average_exit_runs = mean(i['exit_runs'] for i in self.combined_simulation_data)
+        auto_filled_trades = self.contract_auto_fills_1 + self.contract_auto_fills_2
+
+        meta_data = {
+            "average_contract_change_percent": round(average_contract_change_percent, ndigits=4),
+            "standard_deviation_contract_change": round(std_dev_contract_change, ndigits=4),
+            'average_return_percent': round(average_return_percent, ndigits=4),
+            "average_entry_volume": round(average_entry_volume, ndigits=2),
+            "average_exit_volume": round(average_exit_volume, ndigits=2),
+            "average_entry_runs": round(average_entry_runs, ndigits=2),
+            "average_exit_runs": round(average_exit_runs, ndigits=2),
+            'total_trades_simulated': len(self.combined_simulation_data),
+            "auto_filled_trades": auto_filled_trades,
+            'contract_1_meta_data': self.contract_meta_data_1,
+            'contract_2_meta_data': self.contract_meta_data_2,
+        }
+
+        return meta_data
 
 
-test = SingleContractStrategy('aapl', 180, (24, 2, 16), 1, entry_date='2024-02-14',
-                              exit_date='2024-02-14',
-                              entry_exit_period=('10:30:00', '11:00:00', '14:30:00', '16:00:00'),
-                              timespan='minute', is_call=True, fill_gaps=True, per_contract_commission=0.01,
-                              multiplier=1)
-print(test.meta_data)
-print(test.execution_time)
+
+
+
+
+
