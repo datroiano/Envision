@@ -7,7 +7,7 @@ from statistics import mean, stdev
 
 class SingleContractStrategy:
     def __init__(self, ticker, strike, expiration_date, quantity, entry_date, exit_date,
-                 entry_exit_period=None, timespan='minute', is_call=True, per_contract_commission=0,
+                 entry_exit_period=None, timespan='minute', is_call=True, per_contract_commission=0.00,
                  fill_gaps=True, closed_market_period=(9, 30, 16, 0), pricing_criteria='h',
                  multiplier=1, polygon_api_key='r1Jqp6JzYYhbt9ak10x9zOpoj1bf58Zz'):
         start_time = perf_counter()
@@ -104,6 +104,7 @@ class SingleContractStrategy:
             entry_runs = entry_point['n']
 
             for exit_point in exit_points:
+
                 exit_time = exit_point['t']
                 exit_contract_price = exit_point[self.pricing_criteria]  # CAN TINKER WITH AVERAGES HERE
                 exit_strategy_price = exit_contract_price * self.quantity
@@ -113,7 +114,8 @@ class SingleContractStrategy:
 
                 contract_change_dollars = round(exit_contract_price - entry_contract_price, ndigits=2)
                 contract_change_percent = round(contract_change_dollars / entry_contract_price, ndigits=2)
-                strategy_profit_dollars = round(exit_strategy_price - entry_strategy_price, ndigits=2)
+                commission_paid = self.quantity * self.per_contract_commission
+                strategy_profit_dollars = round(exit_strategy_price - entry_strategy_price - commission_paid, ndigits=2)
                 strategy_profit_percent = round(strategy_profit_dollars / entry_strategy_price, ndigits=2)
 
                 simulated_trade = {'entry_time': entry_time,
@@ -143,6 +145,7 @@ class SingleContractStrategy:
         return_percentage_list = [i['contract_change_percent'] for i in self.simulation_data]
 
         average_contract_change_percent = mean(return_percentage_list)
+        average_return_percent = mean(i['strategy_profit_percent'] for i in self.simulation_data)
         standard_deviation_contract_change = stdev(return_percentage_list)
         average_entry_volume = mean([i['entry_volume'] for i in self.simulation_data])
         average_exit_volume = mean([i['exit_volume'] for i in self.simulation_data])
@@ -153,6 +156,7 @@ class SingleContractStrategy:
         meta_data = {
             "average_contract_change_percent": round(average_contract_change_percent, ndigits=4),
             "standard_deviation_contract_change": round(standard_deviation_contract_change, ndigits=4),
+            'average_return_percent': round(average_return_percent, ndigits=4),
             "average_entry_volume": round(average_entry_volume, ndigits=2),
             "average_exit_volume": round(average_exit_volume, ndigits=2),
             "average_entry_runs": round(average_entry_runs, ndigits=2),
@@ -164,9 +168,24 @@ class SingleContractStrategy:
         return meta_data
 
 
-test = SingleContractStrategy('aapl', 190, (24, 2, 16), 1, entry_date='2024-02-14',
-                              exit_date='2024-02-15',
-                              entry_exit_period=('09:30:00', '10:00:00', '12:30:00', '14:30:00'),
-                              timespan='minute', is_call=True, fill_gaps=True)
+class TwoOptionStrategy:
+    def __init__(self, contract_1, contract_2,
+                 entry_date, exit_date, entry_exit_period=None, timespan='minute', is_call=True,
+                 per_contract_commission=0.01, fill_gaps=True, closed_market_period=(9, 30, 16, 0), pricing_criteria='h',
+                 multiplier=1, polygon_api_key='r1Jqp6JzYYhbt9ak10x9zOpoj1bf58Zz'):
+        self.ticker1, self.strike1, self.expiration_date1, self.quantity1 = contract_1
+        self.ticker2, self.strike2, self.expiration_date2, self.quantity1 = contract_2
+        self.entry_date, self.exit_date = entry_date, exit_date
+        self.entry_exit_period = entry_exit_period if entry_exit_period else ('', '', '', '')  # Maybe change
+        self.timespan, self.is_call, self.per_contract_commission = timespan, is_call, per_contract_commission
+        self.fill_gaps = fill_gaps
+        self.market_open, self.market_close = (closed_market_period[0:2]), (closed_market_period[2:4])
+        self.multiplier, self.polygon_api_key = multiplier, polygon_api_key
+
+
+test = SingleContractStrategy('aapl', 180, (24, 2, 16), 1, entry_date='2024-02-14',
+                              exit_date='2024-02-14',
+                              entry_exit_period=('10:30:00', '11:00:00', '14:30:00', '16:00:00'),
+                              timespan='minute', is_call=True, fill_gaps=True, per_contract_commission=0.01)
 print(test.meta_data)
 print(test.execution_time)
