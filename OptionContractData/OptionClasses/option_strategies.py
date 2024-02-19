@@ -1,13 +1,16 @@
 from datetime import datetime, timedelta, time
+from time import perf_counter
 from OptionContractData.OptionClasses.single_contract import SingleOptionsContract
-from OptionContractData.UseFunctions.date_time import from_unix_time
+from OptionContractData.UseFunctions.date_time import from_unix_time, to_unix_time
+from statistics import mean, stdev
 
 
 class SingleContractStrategy:
     def __init__(self, ticker, strike, expiration_date, quantity, entry_date, exit_date,
                  entry_exit_period=None, timespan='minute', is_call=True, per_contract_commission=0,
-                 fill_gaps=True, closed_market_period=(9, 30, 16, 0),
+                 fill_gaps=True, closed_market_period=(9, 30, 16, 0), pricing_criteria='h',
                  multiplier=1, polygon_api_key='r1Jqp6JzYYhbt9ak10x9zOpoj1bf58Zz'):
+        start_time = perf_counter()
         self.ticker = ticker.upper()
         self.strike = float(strike)
         self.expiration_date = expiration_date
@@ -17,23 +20,33 @@ class SingleContractStrategy:
         self.is_call = is_call
         self.multiplier = multiplier
         self.polygon_api_key = polygon_api_key
-        self.entry_exit_period = entry_exit_period if entry_exit_period else ('', '', '', '')  # Just reference using indexes
+        self.entry_exit_period = entry_exit_period if entry_exit_period else ('', '', '', '')  # Maybe change
         self.market_open, self.market_close = (closed_market_period[0:2]), (closed_market_period[2:4])
         self.per_contract_commission = per_contract_commission
+        self.quantity = quantity
+        self.pricing_criteria = pricing_criteria
 
-        contract = SingleOptionsContract(ticker=self.ticker, strike=self.strike, expiration_date=self.expiration_date)
+        contract = SingleOptionsContract(ticker=self.ticker, strike=self.strike, expiration_date=self.expiration_date,
+                                         is_call=self.is_call)
         self.contract_data = contract.get_data(from_date=self.entry_date, to_date=self.exit_date,
                                                window_start_time=self.entry_exit_period[0],
                                                window_end_time=self.entry_exit_period[3],
                                                timespan=self.timespan, multiplier=self.multiplier,
                                                polygon_api_key=self.polygon_api_key)
         self.returned_data_length = len(self.contract_data)
+        self.trades_simulated = None
 
         if fill_gaps:
             self.contract_data = self.fill_data_gaps()
             self.filled_data_length = len(self.contract_data)
         else:
             self.filled_data_length = None
+
+        self.simulation_data = self.run_simulation()
+        self.meta_data = self.perform_meta_data()
+
+        end_time = perf_counter()
+        self.execution_time = round(end_time - start_time, ndigits=4)
 
     def fill_data_gaps(self):
 
@@ -74,13 +87,86 @@ class SingleContractStrategy:
         return filled_data
 
     def run_simulation(self):
-        pass
+        simulation_data = []
+        entry_points = [point for point in self.contract_data if
+                        to_unix_time(f'{self.entry_date} {self.entry_exit_period[0]}') <= int(point['t']) <=
+                        to_unix_time(f'{self.entry_date} {self.entry_exit_period[1]}')]
+        exit_points = [point for point in self.contract_data if
+                       to_unix_time(f'{self.exit_date} {self.entry_exit_period[2]}') <= int(point['t']) <=
+                       to_unix_time(f'{self.exit_date} {self.entry_exit_period[3]}')]
+        for entry_point in entry_points:
+
+            entry_time = entry_point['t']
+            entry_contract_price = entry_point[self.pricing_criteria]  # CAN TINKER WITH AVERAGES HERE
+            entry_strategy_price = entry_contract_price * self.quantity
+            entry_volume = entry_point['v']
+            entry_volume_weighted = entry_point['vw']
+            entry_runs = entry_point['n']
+
+            for exit_point in exit_points:
+                exit_time = exit_point['t']
+                exit_contract_price = exit_point[self.pricing_criteria]  # CAN TINKER WITH AVERAGES HERE
+                exit_strategy_price = exit_contract_price * self.quantity
+                exit_volume = exit_point['v']
+                exit_volume_weighted = exit_point['vw']
+                exit_runs = exit_point['n']
+
+                contract_change_dollars = round(exit_contract_price - entry_contract_price, ndigits=2)
+                contract_change_percent = round(contract_change_dollars / entry_contract_price, ndigits=2)
+                strategy_profit_dollars = round(exit_strategy_price - entry_strategy_price, ndigits=2)
+                strategy_profit_percent = round(strategy_profit_dollars / entry_strategy_price, ndigits=2)
+
+                simulated_trade = {'entry_time': entry_time,
+                                   'entry_contract_price': entry_contract_price,
+                                   'entry_strategy_price': entry_strategy_price,
+                                   'entry_volume': entry_volume,
+                                   'entry_volume_weighted': entry_volume_weighted,
+                                   'entry_runs': entry_runs,
+                                   'exit_time': exit_time,
+                                   'exit_contract_price': exit_contract_price,
+                                   'exit_volume': exit_volume,
+                                   'exit_volume_weighted': exit_volume_weighted,
+                                   'exit_runs': exit_runs,
+                                   'contract_change_dollars': contract_change_dollars,
+                                   'contract_change_percent': contract_change_percent,
+                                   'strategy_profit_dollars': strategy_profit_dollars,
+                                   'strategy_profit_percent': strategy_profit_percent
+                                   }
+
+                simulation_data.append(simulated_trade)
+
+        self.trades_simulated = len(simulation_data)
+
+        return simulation_data
+
+    def perform_meta_data(self):
+        return_percentage_list = [i['contract_change_percent'] for i in self.simulation_data]
+
+        average_contract_change_percent = mean(return_percentage_list)
+        standard_deviation_contract_change = stdev(return_percentage_list)
+        average_entry_volume = mean([i['entry_volume'] for i in self.simulation_data])
+        average_exit_volume = mean([i['exit_volume'] for i in self.simulation_data])
+        average_entry_runs = mean([i['entry_runs'] for i in self.simulation_data])
+        average_exit_runs = mean([i['exit_runs'] for i in self.simulation_data])
+        gap_filled_simulations = len([i for i in self.simulation_data if i['entry_runs'] == 0 or i['exit_runs'] == 0])
+
+        meta_data = {
+            "average_contract_change_percent": round(average_contract_change_percent, ndigits=4),
+            "standard_deviation_contract_change": round(standard_deviation_contract_change, ndigits=4),
+            "average_entry_volume": round(average_entry_volume, ndigits=2),
+            "average_exit_volume": round(average_exit_volume, ndigits=2),
+            "average_entry_runs": round(average_entry_runs, ndigits=2),
+            "average_exit_runs": round(average_exit_runs, ndigits=2),
+            'total_trades_simulated': self.trades_simulated,
+            "auto_filled_trades": gap_filled_simulations
+        }
+
+        return meta_data
 
 
-test = SingleContractStrategy('aapl', 190, (24, 2, 16), 1, '2024-02-14',
-                              '2024-02-15', entry_exit_period=('09:30:00', '10:00:00', '', '14:30:00'),
+test = SingleContractStrategy('aapl', 190, (24, 2, 16), 1, entry_date='2024-02-14',
+                              exit_date='2024-02-15',
+                              entry_exit_period=('09:30:00', '10:00:00', '12:30:00', '14:30:00'),
                               timespan='minute', is_call=True, fill_gaps=True)
-for item in test.contract_data:
-    print(from_unix_time(item['t']))
-print(test.returned_data_length)
-print(test.filled_data_length)
+print(test.meta_data)
+print(test.execution_time)
