@@ -3,11 +3,14 @@ from time import perf_counter
 
 
 class MultipleStrategySimulation:
-    def __init__(self, simulation_list):
+    def __init__(self, simulation_list, create_fluid_model=False):
         start_time = perf_counter()
 
         self.simulation_list = simulation_list
         self.simulation_trade_data, self.simulation_meta_data = self.run_simulations()
+
+        if create_fluid_model:
+            self.fluid_model = self.merge_data()
 
         end_time = perf_counter()
         self.execution_time = end_time - start_time
@@ -52,8 +55,13 @@ class MultipleStrategySimulation:
                 simulation_data.append(double_strategy.combined_simulation_data)
                 simulation_meta_data.append(double_strategy.meta_data)
 
-        return simulation_data, simulation_meta_data
+        return simulation_data[0], simulation_meta_data
 
+    def merge_data(self):
+        fluid_model = []
+        for trade in self.simulation_trade_data:
+            fluid_model.append(trade)
+        return fluid_model
 
 
 
