@@ -2,14 +2,14 @@ from OptionContractData.OptionClasses.option_strategies import TwoOptionStrategy
 
 ticker1 = 'AAPL'
 strike1 = 185
-expiration_date1 = (24, 2, 23)
+expiration_date1 = '2024-02-23'
 quantity1 = 2
 is_call_1 = True
 contract_1 = (ticker1, strike1, expiration_date1, quantity1, is_call_1)
 
 ticker2 = 'AAPL'
 strike2 = 185
-expiration_date2 = (24, 2, 23)
+expiration_date2 = '2024-02-23'
 quantity2 = 2
 is_call_2 = False
 contract_2 = (ticker2, strike2, expiration_date2, quantity2, is_call_2)

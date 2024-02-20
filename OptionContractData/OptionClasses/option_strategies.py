@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, time
 from time import perf_counter
 from OptionContractData.OptionClasses.single_contract import SingleOptionsContract
-from OptionContractData.UseFunctions.date_time import from_unix_time, to_unix_time
+from OptionContractData.UseFunctions.date_time import to_unix_time
 from statistics import mean, stdev
 
 

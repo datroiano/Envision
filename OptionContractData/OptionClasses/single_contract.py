@@ -4,12 +4,12 @@ import requests
 
 
 class SingleOptionsContract:
-    def __init__(self, ticker, strike, expiration_date=None, is_call=True):
+    def __init__(self, ticker, strike, expiration_date, is_call=True):
         self.ticker = str(ticker).upper()
         self.strike = float(strike)
-        self.exp_year = expiration_date[0] if expiration_date else ''
-        self.exp_month = expiration_date[1] if expiration_date else ''
-        self.exp_day = expiration_date[2] if expiration_date else ''
+        self.exp_year = int(expiration_date[2:4])
+        self.exp_month = int(expiration_date[5:7])
+        self.exp_day = int(expiration_date[8:])
         self.is_call = is_call
 
     def get_data(self, from_date, to_date, window_start_time, window_end_time, timespan, multiplier=1,

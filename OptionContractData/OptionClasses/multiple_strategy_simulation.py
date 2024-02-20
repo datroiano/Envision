@@ -1,10 +1,16 @@
 from OptionContractData.OptionClasses.option_strategies import SingleContractStrategy, TwoOptionStrategy
+from time import perf_counter
 
 
 class MultipleStrategySimulation:
     def __init__(self, simulation_list):
+        start_time = perf_counter()
+
         self.simulation_list = simulation_list
         self.simulation_trade_data, self.simulation_meta_data = self.run_simulations()
+
+        end_time = perf_counter()
+        self.execution_time = end_time - start_time
 
     def run_simulations(self):
         simulation_data = []
