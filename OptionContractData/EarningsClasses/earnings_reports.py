@@ -58,9 +58,3 @@ class EarningsCompanies:
 
     def get_specific_company(self, ticker):
         return [i for i in self.filtered_data if i['symbol'] == ticker.upper()]
-
-
-test = EarningsCompanies(from_date='2023-11-12', to_date='2024-02-21')
-print(test.raw_data)
-
-print(f'\nExecution time: {test.execution_time} seconds')
