@@ -1,6 +1,5 @@
 import requests
 from time import perf_counter
-from OptionContractData.UseFunctions.date_time import previous_day
 
 
 class EarningsCompanies:
@@ -48,35 +47,19 @@ class EarningsCompanies:
         return clean_data
 
     def filter_data(self):
-        return [item for item in self.cleaned_data if
-                (self.report_time == 'any' or item['time'] == self.report_time) and
-                (self.min_eps is None or item.get('eps') is not None and self.min_eps <= item[
-                    'eps'] <= self.max_eps) and
-                (self.allow_nones or (item['revenue'] is not None and
-                                      self.real_rev_min <= item['revenue'] <= self.real_rev_max)) and
-                (self.allow_nones or (item['revenueEstimated'] is not None and
-                                      self.est_rev_min <= item['revenueEstimated'] <= self.est_rev_max))]
+        filtered_data = []
+
+        for item in self.cleaned_data:
+            if (self.report_time == 'any' or item['time'] == self.report_time) and \
+                    (self.min_eps is None or (
+                            item.get('eps') is not None and self.min_eps <= item['eps'] <= self.max_eps)) and \
+                    (self.allow_nones or (item['revenue'] is not None and self.real_rev_min <= item[
+                        'revenue'] <= self.real_rev_max)) and \
+                    (self.allow_nones or (item['revenueEstimated'] is not None and self.est_rev_min <= item[
+                        'revenueEstimated'] <= self.est_rev_max)):
+                filtered_data.append(item)
+
+        return filtered_data
 
     def get_specific_company(self, ticker):
         return [i for i in self.filtered_data if i['symbol'] == ticker.upper()]
-
-    def get_input_list_option_strategy(self, entry_start, entry_end, timespan, multiplier):
-        inputs = []
-        for item in self.filtered_data:
-            trade_date = item['date'] if item['time'] == 'amc' else previous_day(item['date'])
-            addition = {
-                'ticker': item['symbol'],
-                'from_date': trade_date,
-                'to_date': trade_date,
-                'from_time': entry_start,
-                'to_time': entry_end,
-                'fill_gaps': True,
-                'timespan': timespan,
-                'multiplier': multiplier
-            }
-            inputs.append(addition)
-
-        return inputs
-
-
-

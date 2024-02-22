@@ -1,0 +1,6 @@
+For the general same-day straddle idea:
+
+1. Get earnings calendar based on various filters and parameters (namely dates and report hour)
+2. Use a cleaning algorithm to get rid of tickers that will not conform to becoming Stock objects
+3. Reduce the size of the data based on "max companies"
+4. Use this list to create stock objects and get averages prices (*eventually to aggregate bars for machine learning)

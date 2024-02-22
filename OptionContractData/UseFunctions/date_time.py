@@ -22,7 +22,8 @@ def from_unix_time(unix_time_str):
 
 def previous_day(input_date):
     date_obj = datetime.strptime(input_date, '%Y-%m-%d')
-    previous_date = date_obj - timedelta(days=1)
-    if previous_date.weekday() == 0:  # Monday is 0
-        previous_date -= timedelta(days=2)
+    if date_obj.weekday() in [0, 6, 5]:  # Monday is 0, Sunday is 6, Saturday is 5
+        previous_date = date_obj - timedelta(days=(date_obj.weekday() + 3) % 7)
+    else:
+        previous_date = date_obj - timedelta(days=1)
     return previous_date.strftime('%Y-%m-%d')

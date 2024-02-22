@@ -15,7 +15,6 @@ class ContractSpread:
         self.best_matches = self.get_best_matched_contracts()
 
     def get_options_contracts(self):
-
         params = {
             'underlying_ticker': self.underlying,
             'contract_type': self.is_call,
@@ -39,6 +38,5 @@ class ContractSpread:
         nearest_num = min(strikes, key=lambda x: abs(x - self.current_underlying))
         return [i for i in self.contracts_data if i['strike_price'] == nearest_num]
 
-
-test = ContractSpread(underlying='aapl', expiration_date_gte='2024-02-08', date_as_of='2024-02-08', current_underlying=180,
-                      is_call=True)
+# test = ContractSpread(underlying='aapl', expiration_date_gte='2024-02-08', date_as_of='2024-02-08', current_underlying=180,
+#                       is_call=True)
