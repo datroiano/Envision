@@ -2,18 +2,19 @@ import requests
 from OptionContractData.UseFunctions.date_time import to_unix_time, from_unix_time
 from datetime import datetime, timedelta, time
 from time import perf_counter
+from statistics import mean
 
 
 class SingleStock:
     def __init__(self, ticker, from_date, from_time, to_date, to_time, fill_gaps=True, timespan='minute', multiplier=1,
                  adjusted=False, aggregate_bars_limit=100, polygon_api_key='r1Jqp6JzYYhbt9ak10x9zOpoj1bf58Zz',
-                 closed_market_period=(9, 30, 16, 0)):
+                 closed_market_period=(9, 30, 16, 0), pricing_criteria='h'):
         start_time = perf_counter()
 
         self.ticker, self.from_date, self.from_time, self.fill_gaps,  = ticker.upper(), from_date, from_time, fill_gaps
         self.to_date, self.to_time, self.timespan, self.polygon_api_key = to_date, to_time, timespan, polygon_api_key
         self.multiplier, self.adjusted, self.aggregate_bars_limit = multiplier, adjusted, aggregate_bars_limit
-        self.market_open, self.market_close = (closed_market_period[0:2]), (closed_market_period[2:4])
+        self.closed_market_period, self.pricing_criteria = closed_market_period, pricing_criteria
 
         self.stock_data = self.get_stock_data()
         self.returned_data_length = len(self.stock_data)
@@ -43,9 +44,8 @@ class SingleStock:
 
     def fill_data_gaps(self):
 
-        trading_start_time = time(self.market_open[0], self.market_open[1])
-        trading_end_time = time(self.market_close[0], self.market_close[1])
-
+        trading_start_time = time(self.closed_market_period[0], self.closed_market_period[1])
+        trading_end_time = time(self.closed_market_period[2], self.closed_market_period[3])
         filled_data = []
 
         time_spans = {
@@ -79,11 +79,6 @@ class SingleStock:
                     })
         return filled_data
 
-
-test_instance = SingleStock(ticker='aapl',
-                            from_date='2024-02-21',
-                            from_time='09:30:00',
-                            to_date='2024-02-21',
-                            to_time='10:30:00',
-                            fill_gaps=True)
+    def get_average_price(self):
+        return mean(i[self.pricing_criteria] for i in self.stock_data)
 
