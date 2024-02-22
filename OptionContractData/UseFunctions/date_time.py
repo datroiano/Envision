@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 
 
@@ -18,3 +18,11 @@ def from_unix_time(unix_time_str):
         return formatted_datetime
     except ValueError:
         return None
+
+
+def previous_day(input_date):
+    date_obj = datetime.strptime(input_date, '%Y-%m-%d')
+    previous_date = date_obj - timedelta(days=1)
+    if previous_date.weekday() == 0:  # Monday is 0
+        previous_date -= timedelta(days=2)
+    return previous_date.strftime('%Y-%m-%d')

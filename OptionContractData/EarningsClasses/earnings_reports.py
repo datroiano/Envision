@@ -1,6 +1,6 @@
 import requests
 from time import perf_counter
-
+from OptionContractData.UseFunctions.date_time import previous_day
 
 class EarningsCompanies:
     def __init__(self, from_date, to_date, report_time='any', min_eps=None, max_eps=None, real_rev_min=None,
@@ -58,3 +58,24 @@ class EarningsCompanies:
 
     def get_specific_company(self, ticker):
         return [i for i in self.filtered_data if i['symbol'] == ticker.upper()]
+
+    def get_input_list_option_strategy(self, entry_start, entry_end, timespan, multiplier):
+        inputs = []
+        for item in self.filtered_data:
+            trade_date = item['date'] if item['time'] == 'amc' else previous_day(item['date'])
+            addition = {
+                'ticker': item['symbol'],
+                'from_date': trade_date,
+                'to_date': trade_date,
+                'from_time': entry_start,
+                'to_time': entry_end,
+                'fill_gaps': True,
+                'timespan': timespan,
+                'multiplier': multiplier
+            }
+            inputs.append(addition)
+
+        return inputs
+
+
+
