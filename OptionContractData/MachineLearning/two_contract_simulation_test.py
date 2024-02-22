@@ -1,8 +1,9 @@
-from OptionContractData.OptionClasses.multiple_strategy_simulation import MultipleStrategySimulation
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+
+from OptionContractData.OptionClasses.multiple_strategy_simulation import MultipleStrategySimulation
 
 # SIM 1 Contracts
 ticker1, strike1, expiration_date1, quantity1, is_call_1 = 'CSCO', 50, '2024-02-16', 1, True
@@ -55,7 +56,8 @@ independent_vars = ['entry_hour', 'entry_minute', 'entry_dayofweek', 'exit_hour'
 dependent_var = 'strategy_profit_percent'
 
 # Splitting the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(df[independent_vars], df[dependent_var], test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(df[independent_vars], df[dependent_var], test_size=0.2,
+                                                    random_state=42)
 
 # Creating and fitting the linear regression model
 model = LinearRegression()
@@ -69,4 +71,4 @@ df1 = pd.DataFrame([f'{var}: {coeff:.6f}' for var, coeff in zip(independent_vars
 print(f'Coefficients\n{df1}')
 print('Mean squared error:', f'{mean_squared_error(y_test, y_pred):.6f}')
 print('Coeff of determination (R^2):', f'{r2_score(y_test, y_pred):.6f}')
-print(f'Percentage R^2 Influence of Vars: {r2_score(y_test, y_pred)*100:.4f}%')
+print(f'Percentage R^2 Influence of Vars: {r2_score(y_test, y_pred) * 100:.4f}%')

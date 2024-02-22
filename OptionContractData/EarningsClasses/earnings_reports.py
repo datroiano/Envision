@@ -3,8 +3,8 @@ from time import perf_counter
 
 
 class EarningsCompanies:
-    def __init__(self, from_date, to_date, min_eps=None, max_eps=None, report_time='any', real_rev_min=None,
-                 real_rev_max=None, est_rev_min=None, est_rev_max=None, clean_data=True,
+    def __init__(self, from_date, to_date, report_time='any', min_eps=None, max_eps=None, real_rev_min=None,
+                 real_rev_max=None, est_rev_min=None, est_rev_max=None, allow_nones=True, remove_empties=False,
                  api_key='sS3gwZ7cycpxe9G7JSAmwigdeOjvN2B4'):
         start_time = perf_counter()
 
@@ -17,11 +17,13 @@ class EarningsCompanies:
         self.real_rev_max = real_rev_max
         self.est_rev_min = est_rev_min
         self.est_rev_max = est_rev_max
-        self.clean_data = clean_data
         self.api_key = api_key
+        self.remove_empties = remove_empties
+        self.allow_nones = allow_nones
 
         self.raw_data = self.get_raw_data()
-        self.filtered_data = self.apply_filters()
+        self.cleaned_data = self.clean_data()
+        self.filtered_data = self.filter_data()
 
         end_time = perf_counter()
         self.execution_time = end_time - start_time
@@ -29,50 +31,36 @@ class EarningsCompanies:
     def get_raw_data(self):
         url = f"https://financialmodelingprep.com/api/v3/earning_calendar?from={self.from_date}&to={self.to_date}&apikey={self.api_key}"
         response = requests.get(url)
+
+        if response.status_code == 401:
+            print("Unauthorized access. Check your API key.")
+            return None
+
         return response.json()
 
-    def apply_filters(self):
-        filtered_data = []
-        for item in self.raw_data:
-            if all(key in item for key in
-                   ['date', 'symbol', 'eps', 'epsEstimated', 'time', 'revenue', 'revenueEstimated', 'fiscalDateEnding',
-                    'updatedFromDate']):
-                filtered_item = {key: item[key] for key in item}
+    def clean_data(self):
+        clean_data = [i for i in self.raw_data if
+                      {'date', 'symbol', 'time', 'eps', 'revenueEstimated', 'revenue'}.issubset(
+                          i.keys()) and '.' not in i.get('symbol', '') and (
+                              not self.remove_empties or all(v is not None for v in i.values()))]
 
-                if self.min_eps is not None and filtered_item.get('eps') is not None and filtered_item[
-                    'eps'] < self.min_eps:
-                    continue
-                if self.max_eps is not None and filtered_item.get('eps') is not None and filtered_item[
-                    'eps'] > self.max_eps:
-                    continue
-                if self.report_time != 'any' and filtered_item.get('time') != self.report_time:
-                    continue
-                if self.real_rev_min is not None and filtered_item.get('revenue') is not None and filtered_item[
-                    'revenue'] < self.real_rev_min:
-                    continue
-                if self.real_rev_max is not None and filtered_item.get('revenue') is not None and filtered_item[
-                    'revenue'] > self.real_rev_max:
-                    continue
-                if self.est_rev_min is not None and filtered_item.get('revenueEstimated') is not None and filtered_item[
-                    'revenueEstimated'] < self.est_rev_min:
-                    continue
-                if self.est_rev_max is not None and filtered_item.get('revenueEstimated') is not None and filtered_item[
-                    'revenueEstimated'] > self.est_rev_max:
-                    continue
+        return clean_data
 
-                # If clean_data is True, make all items not equal to None
-                if self.clean_data:
-                    filtered_item = {k: v for k, v in filtered_item.items() if v is not None}
-                    if 'symbol' in filtered_item and '.' in filtered_item['symbol']:
-                        continue  # Skip items with '.' in 'symbol'
+    def filter_data(self):
+        return [item for item in self.cleaned_data if
+                (self.report_time == 'any' or item['time'] == self.report_time) and
+                (self.min_eps is None or item.get('eps') is not None and self.min_eps <= item[
+                    'eps'] <= self.max_eps) and
+                (self.allow_nones or (item['revenue'] is not None and
+                                      self.real_rev_min <= item['revenue'] <= self.real_rev_max)) and
+                (self.allow_nones or (item['revenueEstimated'] is not None and
+                                      self.est_rev_min <= item['revenueEstimated'] <= self.est_rev_max))]
 
-                filtered_data.append(filtered_item)
-
-        return filtered_data
+    def get_specific_company(self, ticker):
+        return [i for i in self.filtered_data if i['symbol'] == ticker.upper()]
 
 
-x = EarningsCompanies(from_date='2023-11-11', to_date='2023-11-14', min_eps=0)
-for item in x.filtered_data:
-    print(item.get('eps'))
+test = EarningsCompanies(from_date='2023-11-12', to_date='2024-02-21')
+print(test.raw_data)
 
-print(f'{x.execution_time} sec')
+print(f'\nExecution time: {test.execution_time} seconds')
