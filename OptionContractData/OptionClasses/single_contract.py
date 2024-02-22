@@ -33,7 +33,7 @@ class SingleOptionsContract:
             return response['results']
 
 
-test_contract = SingleOptionsContract("aapl", 180, '2024-02-16')
-test_contract_data = test_contract.get_data(from_date='2024-02-11', to_date='2024-02-12',
-                                               window_start_time='09:30:00', window_end_time='16:30:00',
-                                               timespan='minute')
+# test_contract = SingleOptionsContract("aapl", 180, '2024-02-16')
+# test_contract_data = test_contract.get_data(from_date='2024-02-11', to_date='2024-02-12',
+#                                                window_start_time='09:30:00', window_end_time='16:30:00',
+#                                                timespan='minute')
