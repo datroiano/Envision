@@ -2,6 +2,7 @@ import requests
 from time import perf_counter
 from OptionContractData.UseFunctions.date_time import previous_day
 
+
 class EarningsCompanies:
     def __init__(self, from_date, to_date, report_time='any', min_eps=None, max_eps=None, real_rev_min=None,
                  real_rev_max=None, est_rev_min=None, est_rev_max=None, allow_nones=True, remove_empties=False,

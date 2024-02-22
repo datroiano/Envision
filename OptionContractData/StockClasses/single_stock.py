@@ -17,9 +17,10 @@ class SingleStock:
         self.closed_market_period, self.pricing_criteria = closed_market_period, pricing_criteria
 
         self.stock_data = self.get_stock_data()
-        self.returned_data_length = len(self.stock_data)
 
-        if fill_gaps:
+        if self.stock_data is not None: self.returned_data_length = len(self.stock_data)
+
+        if fill_gaps and self.stock_data is not None:
             self.stock_data = self.fill_data_gaps()
             self.filled_data_length = len(self.stock_data)
         else:
