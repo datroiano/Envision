@@ -54,10 +54,8 @@ class MultipleStrategySimulation:
                                                         multiplier=entry[11],
                                                         polygon_api_key=entry[12],
                                                         )
-                    simulation_data.append({'contract': entry[1],
-                                            'simulation': double_strategy.combined_simulation_data})
-                    simulation_meta_data.append({'contract': entry[1],
-                                                 'meta_data': double_strategy.meta_data})
+                    simulation_data.append(double_strategy.combined_simulation_data)
+                    simulation_meta_data.append(double_strategy.meta_data)
             except statistics.StatisticsError:
                 continue
             except TypeError:
@@ -70,7 +68,7 @@ class MultipleStrategySimulation:
     def merge_data(self):
         fluid_model = []
         for run in self.simulation_trade_data:
-            print(run)  # Finish this
+            fluid_model.append(run)
         return fluid_model
 
 # x = [(2, ('RARE', 45, '2024-02-16', 1, True), ('RARE', 45, '2024-02-16', 1, False), '2024-02-15', '2024-02-15',

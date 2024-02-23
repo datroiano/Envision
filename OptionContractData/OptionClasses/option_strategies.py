@@ -108,7 +108,6 @@ class SingleContractStrategy:
             entry_runs = entry_point['n']
 
             for exit_point in exit_points:
-
                 exit_time = exit_point['t']
                 exit_contract_price = exit_point[self.pricing_criteria]  # CAN TINKER WITH AVERAGES HERE
                 exit_strategy_price = exit_contract_price * self.quantity
@@ -176,7 +175,8 @@ class SingleContractStrategy:
 class TwoOptionStrategy:
     def __init__(self, contract_1, contract_2,
                  entry_date, exit_date, entry_exit_period=None, timespan='minute',
-                 per_contract_commission=0.01, fill_gaps=True, closed_market_period=(9, 30, 16, 0), pricing_criteria='h',
+                 per_contract_commission=0.01, fill_gaps=True, closed_market_period=(9, 30, 16, 0),
+                 pricing_criteria='h',
                  multiplier=1, polygon_api_key='r1Jqp6JzYYhbt9ak10x9zOpoj1bf58Zz'):
         start_time = perf_counter()
 
@@ -265,6 +265,14 @@ class TwoOptionStrategy:
         auto_filled_trades = self.contract_auto_fills_1 + self.contract_auto_fills_2
 
         meta_data = {
+            "ticker1": self.ticker1,
+            'ticker2': self.ticker2,
+            'contract_1_strike': self.strike1,
+            'contract_2_strike': self.strike2,
+            'expiration_date_1': self.expiration_date1,
+            'expiration_date_2': self.expiration_date2,
+            'trade_date': self.entry_date,
+            'exit_date': self.exit_date,
             "average_contract_change_percent": round(average_contract_change_percent, ndigits=4),
             "standard_deviation_contract_change": round(std_dev_contract_change, ndigits=4),
             'average_return_percent': round(average_return_percent, ndigits=4),
@@ -279,10 +287,3 @@ class TwoOptionStrategy:
         }
 
         return meta_data
-
-
-
-
-
-
-

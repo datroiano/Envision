@@ -24,14 +24,13 @@ class MasterEarningsSimulation:
         self.remove_empties, self.max_companies, self.pricing_criteria = remove_empties, max_companies, pricing_criteria
         self.attempts_per_company, self.contract_quantity = attempts_per_company, contract_quantity
         self.roundtrip_commission, self.polygon_api_key = roundtrip_commission, polygon_api_key
+        self.stock_errors, self.contract_spread_errors, self.entry_count, self.contract_errors = 0, 0, 0, 0
 
         self.input_companies_from_cal = self.get_companies_from_earnings_calendar()
         self.option_inputs_raw = self.get_simulation_inputs_raw()
         self.master_simulations_final_inputs = self.create_multiple_simulation_entry()
 
-        self.simulation_trade_data = []
-        self.simulation_meta_data = []
-        self.fluid_model = []
+        self.simulation_trade_data, self.simulation_meta_data, self.fluid_model = [], [], []
         self.run_bulk_simulation()
 
         end_time = perf_counter()
@@ -58,11 +57,8 @@ class MasterEarningsSimulation:
 
     def get_simulation_inputs_raw(self):
         full_simulation_input = []
-        i = 0
-        stock_errors = 0
-        contract_spread_errors = 0
         for company in self.input_companies_from_cal:
-            if i >= self.max_companies:
+            if self.entry_count >= self.max_companies:
                 break
             try:
                 from_date = previous_day(company['date']) if company['time'] == 'bmo' else company['date']
@@ -98,12 +94,12 @@ class MasterEarningsSimulation:
                     if added_count >= self.attempts_per_company:
                         break
 
-                i += 1
+                self.entry_count += 1
             except TypeError:
-                stock_errors += 1
+                self.stock_errors += 1
                 continue
             except ValueError:
-                contract_spread_errors += 1
+                self.contract_spread_errors += 1
                 continue
         # print(full_simulation_input)
         # print(f'Stock Errors: {stock_errors}')
@@ -139,15 +135,23 @@ class MasterEarningsSimulation:
         self.fluid_model = bulk_simulation.fluid_model
 
 
+    def check_rebound_data(self):
+        if len(self.simulation_meta_data) < self.max_companies:
+            self.contract_errors += len(self.simulation_meta_data) < self.max_companies
+
+    def add_missing_data(self):
+
+
+
 test = MasterEarningsSimulation(entry_period_start='09:30:00', entry_period_end='10:30:00',
                                 exit_period_start='14:30:00',
                                 exit_period_end='16:00:00', earnings_date_s='2024-02-15', earnings_date_e='2024-02-21',
-                                earnings_report_time='any', max_companies=5, timespan='minute',
+                                earnings_report_time='any', max_companies=3, timespan='minute',
                                 multiplier=1, pricing_criteria='h',
                                 min_eps=None, max_eps=None, real_rev_min=None, real_rev_max=None,
                                 est_rev_min=None,
                                 est_rev_max=None, attempts_per_company=1,
                                 allow_nones=True, remove_empties=False)
 
-print(test.simulation_trade_data)
+print(test.check_rebound_data())
 print(f'Execution time: {test.execution_time} seconds')
