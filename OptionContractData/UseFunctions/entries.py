@@ -1,104 +1,46 @@
-import decimal
-
-
-def create_options_ticker(ticker, strike, expiration_year, expiration_month, expiration_day, contract_type):
+def create_options_ticker(ticker: str, strike: float, expiration_date: str, contract_type: bool) -> str:
     ticker = str(ticker.upper())
-    strike = str(strike)
-    expiration_year = str(expiration_year)
-    expiration_month = str(expiration_month)
-    expiration_day = str(expiration_day)
+    strike = str(float(strike))
+    expiration_year = expiration_date[2:4]
+    expiration_month = expiration_date[5:7]
+    expiration_day = expiration_date[8:]
+    contract_type = 'C' if contract_type else 'P'
 
-    if contract_type:
-        contract_type = 'C'
-    else:
-        contract_type = 'P'
+    '''
+    Strike formatting will look like this:
+    1000: 01000000
+    1000.5: 01000500
+    170.5: 00170500
+    '''
 
-    # strike formatting for 1000: 01000000
-    # strike formatting for 1000.5: 01000500
-    # strike formatting for 170.5: 00170500
+    decimal_find = strike.find('.', )
+    num_dec = len(strike) - decimal_find - 1
+    strike = strike.replace(".", "")
 
-    strike_d = decimal.Decimal(strike)
-    num_dec = strike_d.as_tuple().exponent
-    length_strike = len(strike)
-    strike_string_for_insertion = ''
+    strike_mapping = {1: {
+        1: f'00000{strike}00',
+        2: f'0000{strike}00',
+        3: f'000{strike}00',
+        4: f'00{strike}00',
+        5: f'0{strike}00',
+        6: f'{strike}00',
+    }, 2: {
+        1: f'000000{strike}0',
+        2: f'00000{strike}0',
+        3: f'0000{strike}0',
+        4: f'000{strike}0',
+        5: f'0{strike}0',
+        6: f'{strike}00',
+        7: f'{strike}0'
+    }
+    }
 
-    if num_dec == 0:
-        if length_strike == 1:
-            # case: 0000*000
-            strike_string_for_insertion = f'0000{strike}000'
-        elif length_strike == 2:
-            # case: 000**000
-            strike_string_for_insertion = f'000{strike}000'
-        elif length_strike == 3:
-            # case: 00***000
-            strike_string_for_insertion = f'00{strike}000'
-        elif length_strike == 4:
-            # case: 0****000
-            strike_string_for_insertion = f'0{strike}000'
-        elif length_strike == 5:
-            # case *****000
-            strike_string_for_insertion = f'{strike}000'
-        else:
-            return ValueError
-    elif num_dec == -1:  # case with decimal equals 1 after decimal point
-        strike = strike.replace(".", "")
-        length_strike = len(strike)
-        if length_strike == 1:
-            # case 00000*00
-            strike_string_for_insertion = f'00000{strike}00'
-        elif length_strike == 2:
-            # case 0000**00
-            strike_string_for_insertion = f'0000{strike}00'
-        elif length_strike == 3:
-            # case 000***00
-            strike_string_for_insertion = f'000{strike}00'
-        elif length_strike == 4:
-            # case 00****00
-            strike_string_for_insertion = f'00{strike}00'
-        elif length_strike == 5:
-            # case 0*****00
-            strike_string_for_insertion = f'0{strike}00'
-        elif length_strike == 6:
-            # case ******00
-            strike_string_for_insertion = f'{strike}00'
-    elif num_dec == -2: # case with decimals equalling 2
-        strike = strike.replace(".", "")
-        length_strike = len(strike)
-        if length_strike == 1:
-            # case 000000*0
-            strike_string_for_insertion = f'000000{strike}0'
-        elif length_strike == 2:
-            # case 00000**0
-            strike_string_for_insertion = f'00000{strike}0'
-        elif length_strike == 3:
-            # case 0000***0
-            strike_string_for_insertion = f'0000{strike}0'
-        elif length_strike == 4:
-            # case 000****0
-            strike_string_for_insertion = f'000{strike}0'
-        elif length_strike == 5:
-            # case 00*****0
-            strike_string_for_insertion = f'00{strike}0'
-        elif length_strike == 6:
-            # case 0******0
-            strike_string_for_insertion = f'0{strike}0'
-        elif length_strike == 7:
-            # case *******0
-            strike_string_for_insertion = f'{strike}0'
-    else:
-        return ValueError
+    strike_string_for_insertion = strike_mapping.get(num_dec, '')[len(strike)]
 
-    # Above logic is equipt to handle any strike 0-99999 with up to two decimal places (enough for most purposes)
-
-    if len(expiration_month) == 1:
-        expiration_month = f'0{expiration_month}'
-    if len(expiration_year) == 1:
-        expiration_year = f'0{expiration_year}'
-    if len(expiration_day) == 1:
-        expiration_day = f'0{expiration_day}'
+    expiration_month = f'0{expiration_month}' if len(expiration_month) == 1 else expiration_month
+    expiration_year = f'0{expiration_year}' if len(expiration_year) == 1 else expiration_year
+    expiration_day = f'0{expiration_day}' if len(expiration_day) == 1 else expiration_day
 
     expiry = f'{expiration_year}{expiration_month}{expiration_day}'
 
-    constructed_return = f'O:{ticker}{expiry}{contract_type}{strike_string_for_insertion}'
-
-    return constructed_return
+    return f'O:{ticker}{expiry}{contract_type}{strike_string_for_insertion}'

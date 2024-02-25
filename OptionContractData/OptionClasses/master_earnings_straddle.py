@@ -134,13 +134,12 @@ class MasterEarningsSimulation:
         self.simulation_meta_data = bulk_simulation.simulation_meta_data
         self.fluid_model = bulk_simulation.fluid_model
 
-
     def check_rebound_data(self):
         if len(self.simulation_meta_data) < self.max_companies:
             self.contract_errors += len(self.simulation_meta_data) < self.max_companies
 
     def add_missing_data(self):
-
+        pass
 
 
 test = MasterEarningsSimulation(entry_period_start='09:30:00', entry_period_end='10:30:00',
