@@ -7,9 +7,10 @@ from statistics import mean, stdev
 
 class SingleContractStrategy:
     def __init__(self, ticker, strike, expiration_date, quantity, entry_date, exit_date,
-                 entry_exit_period=None, timespan='minute', is_call=True, per_contract_commission=0.00,
-                 fill_gaps=True, closed_market_period=(9, 30, 16, 0), pricing_criteria='h',
-                 multiplier=1, polygon_api_key='r1Jqp6JzYYhbt9ak10x9zOpoj1bf58Zz'):
+                 entry_exit_period: tuple = None, timespan: str = 'minute', is_call: str = True,
+                 per_contract_commission: float = 0.00, fill_gaps: bool = True,
+                 closed_market_period: tuple = (9, 30, 16, 0), pricing_criteria: str = 'h',
+                 multiplier: int = 1, polygon_api_key: str = 'r1Jqp6JzYYhbt9ak10x9zOpoj1bf58Zz') -> None:
         start_time = perf_counter()
 
         self.ticker = ticker.upper()

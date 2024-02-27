@@ -10,7 +10,7 @@ class SingleOptionsContract:
         self.expiration_date, self.is_call = expiration_date, is_call
 
     def get_data(self, from_date: str, to_date: str, window_start_time: str, window_end_time: str, timespan: str,
-                 multiplier: int = 1, polygon_api_key: str = 'r1Jqp6JzYYhbt9ak10x9zOpoj1bf58Zz'):
+                 multiplier: int = 1, polygon_api_key: str = 'r1Jqp6JzYYhbt9ak10x9zOpoj1bf58Zz') -> list[dict] or None:
         from_date = to_unix_time(f'{from_date} {window_start_time}')
         to_date = to_unix_time(f'{to_date} {window_end_time}')
 
